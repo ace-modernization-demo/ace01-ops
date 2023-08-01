@@ -1,6 +1,6 @@
 ## Overview
 
-This tutorial demonstrates a platform engineering approach to MQ development and
+This tutorial demonstrates a platform engineering approach to ACE development and
 deployment. It demonstrates continuous integration, continuous deployment,
 GitOps, Infrastructure as Code and DevOps using containers, Kubernetes and a set
 of popular cloud native tools such as ArgoCD and Tekton.
@@ -8,50 +8,50 @@ of popular cloud native tools such as ArgoCD and Tekton.
 In this tutorial, you will:
 
 1. Create a Kubernetes cluster and image registry, if required.
-2. Create an operational repository to store MQ resources that are
+2. Create an operational repository to store ACE resources that are
    deployed to the Kubernetes cluster.
-3. Install ArgoCD to manage the continuous deployment of MQ-related
+3. Install ArgoCD to manage the continuous deployment of ACE-related
    resources to the cluster.
-4. Create a source Git repository that holds the MQ development artifacts
+4. Create a source Git repository that holds the ACE development artifacts
    for a queue manager.
-5. Install Tekton to provide continuous integration of the source MQ artifacts.
+5. Install Tekton to provide continuous integration of the source ACE artifacts.
    These pipeline ensures that all changes to these artifacts are successful
    built, packaged, versioned and tested before they are delivered into the
    operational repository, read for deployment.
-6. Gain experience with the IBM-supplied MQ operator and container.
+6. Gain experience with the IBM-supplied ACE operator and container.
 
 By the end of the tutorial, you will have practical experience and knowledge of
-platform engineering with MQ in a Kubernetes environment.
+platform engineering with ACE in a Kubernetes environment.
 
 ---
 
 ## Introduction
 
-The following diagram shows a CICD pipeline for MQ:
+The following diagram shows a CICD pipeline for ACE:
 
 ![diagram1](./xdocs/images/diagram1.drawio.png)
 
 Notice:
 
-- The git repository `mq01-src` holds the source development artifacts for a
-  queue manage `mq01`.
-- A Tekton pipeline uses the `mq01-src` repository to build, package, test,
-  version and deliver resources that define the `mq01` queue manager.
-- If the pipeline is successful, then the YAMLs that define `mq01` are stored in
-  the operational repository `mq01-ops` and the container image for `mq01` is
+- The git repository `ace01-src` holds the source development artifacts for a
+  queue manage `ace01`.
+- A Tekton pipeline uses the `ace01-src` repository to build, package, test,
+  version and deliver resources that define the `ace01` queue manager.
+- If the pipeline is successful, then the YAMLs that define `ace01` are stored in
+  the operational repository `ace01-ops` and the container image for `ace01` is
   stored in an image registry.
 - Shortly after the changes are committed to the git repository, an ArgoCD
   application detects the updated YAMLs. It applies them to the cluster to create or
-  update a running queue manager, `mq01`.
+  update a running queue manager, `ace01`.
 
 This tutorial will walk you through the process of setting up this
 configuration:
 - Step 1: Follow the instructions in this README to set up your cluster, ArgoCD,
-  the `mq01-ops` repository, and Tekton. Continue to step 2.
+  the `ace01-ops` repository, and Tekton. Continue to step 2.
 - Step 2: Move to [these
-  instructions](https://github.com/mq-modernization-demo/mq01-src#readme) to create the
-  `mq01-src` repository, run a Tekton pipeline to populate the `mq01-ops`
-  repository, and interact with the new or updated queue manager `mq01`.
+  instructions](https://github.com/ace-modernization-demo/ace01-src#readme) to create the
+  `ace01-src` repository, run a Tekton pipeline to populate the `ace01-ops`
+  repository, and interact with the new or updated queue manager `ace01`.
 
 ---
 
@@ -98,7 +98,7 @@ indicating that you are now logged into the Kubernetes cluster.
 
 ## Create a GitHub organization for your repositories
 
-This tutorial requires you to create the `mq01-src` and `mq01-ops` repositories.
+This tutorial requires you to create the `ace01-src` and `ace01-ops` repositories.
 It's a good idea to create them in a separate organization because it makes it
 easy to collaborate with your colleagues later on.
 
@@ -130,14 +130,14 @@ The `Free` plan is sufficient for this tutorial.
 
 <br> Complete the details for your new organization.
 
-* Specify `Organization account name` of the form `mqorg-xxxxx` where `xxxxx` is
+* Specify `Organization account name` of the form `aceorg-xxxxx` where `xxxxx` is
   your GitHub user name.
-* Specify `Contact mail` e.g. `odowda@example.com`
+* Specify `Contact mail` e.g. `khongks@example.com`
 * Select `My personal account`.
 
 <br> Once you've complete this page, click `Next`:
 
-<br> Your new organization `mqorg-xxxxx` has now been created:
+<br> Your new organization `aceorg-xxxxx` has now been created:
 <img src="./xdocs/images/diagram9.png" alt="drawing" width="800"/>
 
 You can add colleagues to this organization each with a particular role. For
@@ -146,8 +146,8 @@ now, we can use the organization as-is.
 <br> Click on `Complete setup` to complete the organization creation process.
 
 <br> Although you may see a few more screens, such as a usage survey, your
-organization has been now been created. We will use it to host the `mq01-src`
-and `mq01-ops` repositories in this tutorial.
+organization has been now been created. We will use it to host the `ace01-src`
+and `ace01-ops` repositories in this tutorial.
 
 ---
 
@@ -157,13 +157,13 @@ We now define some environment variables that are used by the commands in this
 tutorial to make them easy to use.
 
 Define your GitHub user name in the `GITUSER` variable using the name you
-supplied above, e.g. `odowdaibm`. Your GitHub user name will be used to 
+supplied above, e.g. `khongks`. Your GitHub user name will be used to 
 
 Open a new Terminal window and type:
 
 ```bash
-export GITUSER=odowdaibm
-export GITORG=mqorg-$GITUSER
+export GITUSER=khongks
+export GITORG=aceorg-$GITUSER
 ```
 
 Let's use this environment variable to examine your new organization in GitHub.
@@ -177,7 +177,7 @@ echo https://github.com/orgs/$GITORG/repositories
 which will respond with a URL of this form:
 
 ```bash
-https://github.com/orgs/mqorg-odowdaibm/repositories
+https://github.com/orgs/aceorg-khongks/repositories
 ```
 
 Navigate to this URL in your browser:
@@ -185,31 +185,31 @@ Navigate to this URL in your browser:
 <img src="./xdocs/images/diagram10.png" alt="drawing" width="800"/>
 
 You can see that your new organization doesn't yet have any repositories in it.
-Let's start by adding the `mq01-ops` repository to it.
+Let's start by adding the `ace01-ops` repository to it.
 
 ---
 
-## Creating the `mq01-ops` repository
+## Creating the `ace01-ops` repository
 
-We use a [template repository](https://github.com/mq-modernization-demo/mq01-ops) to
-create `mq01-ops` in our new organization. Forking a template creates a
+We use a [template repository](https://github.com/ace-modernization-demo/ace01-ops) to
+create `ace01-ops` in our new organization. Forking a template creates a
 repository with a clean git history, allowing us to track the history of changes
-to our cluster every time we update `mq01-ops`.
+to our cluster every time we update `ace01-ops`.
 
 <br> Click on [this
-URL](https://github.com/mq-modernization-demo/mq01-ops/generate) to fork from
-the `mq01-ops` template repository:
+URL](https://github.com/ace-modernization-demo/ace01-ops/generate) to fork from
+the `ace01-ops` template repository:
 
 <img src="./xdocs/images/diagram11.png" alt="drawing" width="800"/>
 
-This screen allows you to define the properties for your copy of the `mq01-ops`
+This screen allows you to define the properties for your copy of the `ace01-ops`
 repository.
 
 Specifically:
 
-* In the `Owner` dropdown, select your newly created organization, e.g. `mqorg-xxxxx`
-* In the `Repository name` field, specify `mq01-ops`.
-* In the `Description` field, specify `Operational repository for MQ`.
+* In the `Owner` dropdown, select your newly created organization, e.g. `aceorg-xxxxx`
+* In the `Repository name` field, specify `ace01-ops`.
+* In the `Description` field, specify `Operational repository for ACE`.
 * Select `Public` for the repository visibility.
 
 <br> Click on `Create repository from template`:
@@ -217,7 +217,7 @@ Specifically:
 <br> This repository will be cloned to the specified GitHub account:
 <img src="./xdocs/images/diagram12.png" alt="drawing" width="800"/>
 
-<br> You have successfully created a copy of the `mq01-ops` repository in your
+<br> You have successfully created a copy of the `ace01-ops` repository in your
 organization.
 
 ---
@@ -262,9 +262,9 @@ Navigate to https://github.com/settings/tokens?type=beta in your Browser:
 
 Complete the page as follows:
 
-1. `Token Name`: `MQ tutorial access`
+1. `Token Name`: `ACE tutorial access`
 2. `Description`: `This token allows a user to clone repositories and create/merge PRs`
-3. `Resource Owner` drop-down:  Select your organization e.g. `mqorg-odowdaibm`
+3. `Resource Owner` drop-down:  Select your organization e.g. `aceorg-khongks`
 4. Select the `All repositories` radio button
 5. Under `Repository permissions` select:
    * `Contents`: `Read and write`
@@ -287,8 +287,8 @@ In the meantime, we're going to store in an environment variable.
 export GITTOKEN=<PAT copied from GitHub>
 ```
 
-Let's now use this token to create our own copies of the `mq01-src` and
-`mq01-ops` repositories.
+Let's now use this token to create our own copies of the `ace01-src` and
+`ace01-ops` repositories.
 
 ---
 
@@ -301,20 +301,20 @@ It's best practice to store cloned git repositories under a folder called `git`,
 with subfolders that correspond to your projects.
 
 Issue the following commands to create this folder structure and clone the
-`mq01-ops` repository from GitHub to your local machine.
+`ace01-ops` repository from GitHub to your local machine.
 
 ```bash
 mkdir -p $HOME/git/$GITORG-tutorial
 cd $HOME/git/$GITORG-tutorial
-git clone https://$GITTOKEN@github.com/$GITORG/mq01-ops.git
-cd mq01-ops
+git clone https://$GITTOKEN@github.com/$GITORG/ace01-ops.git
+cd ace01-ops
 ```
 
 ---
 
-## Create MQ development namespace
+## Create ACE development namespace
 
-Let's use some YAML in `mq01-ops` to define two namespaces in our cluster:
+Let's use some YAML in `ace01-ops` to define two namespaces in our cluster:
 
 Issue the following command:
 
@@ -325,22 +325,22 @@ oc apply -f setup/namespaces.yaml
 which will confirm the following namespaces are created in the cluster:
 
 ```bash
-namespace/mq01-ci created
-namespace/mq01-dev created
+namespace/ace01-ci created
+namespace/ace01-dev created
 ```
 
-As the tutorial proceeds, we'll see how the YAMLs in `mq01-ops` **fully** define
-the MQ related resources deployed to the cluster. In fact, we're going to set up
-the cluster such that it is **automatically** updated whenever the `mq01-ops`
+As the tutorial proceeds, we'll see how the YAMLs in `ace01-ops` **fully** define
+the ACE related resources deployed to the cluster. In fact, we're going to set up
+the cluster such that it is **automatically** updated whenever the `ace01-ops`
 repository is updated. This concept is called **continuous deployment** and
 we'll use ArgoCD to achieve it.
 
 ---
 
-## Explore the `mq01-ops` repository
+## Explore the `ace01-ops` repository
 
 If you'd like to understand a little bit more about how the namespaces were
-created, you can explore the contents of the `mq01-ops` repository.
+created, you can explore the contents of the `ace01-ops` repository.
 
 Issue the following command:
 
@@ -354,40 +354,40 @@ which shows the following namespace definitions:
 kind: Namespace
 apiVersion: v1
 metadata:
-  name: mq01-ci
+  name: ace01-ci
   labels:
-    name: mq01-ci
+    name: ace01-ci
 ---
 kind: Namespace
 apiVersion: v1
 metadata:
-  name: mq01-dev
+  name: ace01-dev
   labels:
-    name: mq01-dev
+    name: ace01-dev
 ```
 
 Issue the following command to show these namespaces in the cluster
 
 ```bash
-oc get namespace mq01-ci
-oc get namespace mq01-dev
+oc get namespace ace01-ci
+oc get namespace ace01-dev
 ```
 
 which will shows these namespaces and their age, for example:
 
 ```bash
 NAME      STATUS   AGE
-mq01-ci   Active   18s
+ace01-ci   Active   18s
 NAME       STATUS   AGE
-mq01-dev   Active   18s
+ace01-dev   Active   18s
 ```
 
 During this tutorial, we'll see how:
 
-- the `mq01-ci` namespace is used to store specific Kubernetes resources to
-  build, package, version and test `mq01`.
-- the `mq01-dev` namespace is used to store specific Kubernetes resources
-  relating to a running queue manager, `mq01`.
+- the `ace01-ci` namespace is used to store specific Kubernetes resources to
+  build, package, version and test `ace01`.
+- the `ace01-dev` namespace is used to store specific Kubernetes resources
+  relating to a running queue manager, `ace01`.
 
 ---
 
@@ -496,10 +496,10 @@ here; feel free to examine it.
 
 ## Minor modifications to ArgoCD
 
-ArgoCD will deploy `mq01` and its related resources to the cluster. These
+ArgoCD will deploy `ace01` and its related resources to the cluster. These
 resources are labelled by ArgoCD with a specific `applicationInstanceLabelKey`
 so that they can be tracked for configuration drift. The default label used by
-ArgoCD collides with MQ operator, so we need to change it.
+ArgoCD collides with ACE operator, so we need to change it.
 
 Issue the following command to change the `applicationInstanceLabelKey`used by
 ArgoCD:
@@ -524,7 +524,7 @@ label to every resource it deploys to the cluster.
 
 ## Role and role binding
 
-ArgoCD requires permission to create resources in the `mq01-dev` namespace. We
+ArgoCD requires permission to create resources in the `ace01-dev` namespace. We
 use a role to define the resources required to deploy a queue manager, and a
 role binding to associate this role with the `serviceaccount` associated with
 ArgoCD.
@@ -532,38 +532,38 @@ ArgoCD.
 Issue the following command to create this `role`:
 
 ```bash
-oc apply -f setup/mq-role.yaml
+oc apply -f setup/ace-role.yaml
 ```
 
-which confirms that the `mq-deployer` role has been created:
+which confirms that the `ace-deployer` role has been created:
 
 ```bash
-role.rbac.authorization.k8s.io/mq-deployer created
+role.rbac.authorization.k8s.io/ace-deployer created
 ```
 
 Issue the following command to create the corresponding `rolebinding`:
 
 ```bash
-oc apply -f setup/mq-rolebinding.yaml
+oc apply -f setup/ace-rolebinding.yaml
 ```
 
-which confirms that the `mq-deployer` role binding  has been created:
+which confirms that the `ace-deployer` role binding  has been created:
 
 ```bash
-rolebinding.rbac.authorization.k8s.io/mq-deployer
+rolebinding.rbac.authorization.k8s.io/ace-deployer
 ```
 
 We can see which resources ArgoCD can create in the cluster by examining the
-`mq-deployer` role:
+`ace-deployer` role:
 
 ```bash
-oc describe role mq-deployer -n mq01-dev
+oc describe role ace-deployer -n ace01-dev
 ```
 
 which returns:
 
 ```bash
-Name:         mq-deployer
+Name:         ace-deployer
 Labels:       <none>
 Annotations:  <none>
 PolicyRule:
@@ -645,26 +645,26 @@ work](https://olm.operatorframework.io/docs/concepts/crds/catalogsource/).
 
 ---
 
-## Install MQ operator
+## Install ACE operator
 
-We can now install the MQ operator; using the same process as we used with ArgoCD.
+We can now install the ACE operator; using the same process as we used with ArgoCD.
 
 Issue the following command:
 
 ```bash
-oc apply -f setup/mq-operator-sub.yaml
+oc apply -f setup/ace-operator-sub.yaml
 ```
 
-which will create the MQ operator subscription:
+which will create the ACE operator subscription:
 
 ```bash
-subscription.operators.coreos.com/mq-operator created
+subscription.operators.coreos.com/ace-operator created
 ```
 
 Explore the subscription using the following command:
 
 ```bash
-cat setup/mq-operator-sub.yaml
+cat setup/ace-operator-sub.yaml
 ```
 
 which details the subscription:
@@ -674,58 +674,38 @@ apiVersion: operators.coreos.com/v1alpha1
 kind: Subscription
 metadata:
   labels:
-    operators.coreos.com/mq-operator.mq01-ns: ''
-  name: mq-operator
+    operators.coreos.com/ibm-appconnect.openshift-operators: ""
+  name: ibm-appconnect
   namespace: openshift-operators
 spec:
-  channel: v2.4
-  installPlanApproval: Manual
-  name: mq-operator
+  channel: v9.1
+  installPlanApproval: Automatic
+  name: ibm-appconnect
   source: ibm-operator-catalog
   sourceNamespace: openshift-marketplace
-  startingCSV: mq-operator.v2.4.0
+  startingCSV: ibm-appconnect.v9.1.0
 ```
 
 Notice how this operator is installed in the `openshift-operators` namespace.
 Note also the use of `channel` and `startingCSV` to be precise about the exact
-version of the MQ operator to be installed.
+version of the ACE operator to be installed.
 
-## Approve and verify MQ install plan
-
-Let's find our MQ install plan and approve it.
-
-```bash
-oc get installplan -n openshift-operators | grep "mq-operator" | awk '{print $1}' | \
-xargs oc patch installplan \
- --namespace openshift-operators \
- --type merge \
- --patch '{"spec":{"approved":true}}'
-```
-
-which will approve the install plan:
-
-```bash
-installplan.operators.coreos.com/install-xxxxx patched
-```
-
-where `install-xxxxx` is the name of the MQ install plan.
-
-Again, feel free to verify the MQ installation with the following
+Again, feel free to verify the ACE installation with the following
 commands:
 
 ```bash
-oc get clusterserviceversion ibm-mq.v2.4.0 -n openshift-operators
+oc get clusterserviceversion ibm-appconnect.v9.1.0 -n openshift-operators
 ```
 
 ```bash
-NAME            DISPLAY   VERSION   REPLACES   PHASE
-ibm-mq.v2.4.0   IBM MQ    2.4.0                Succeeded
+NAME                    DISPLAY   VERSION   REPLACES   PHASE
+ibm-appconnect.v9.1.0   IBM       9.1.0                Succeeded
 ```
 
-which shows that the 2.4.0 version of the operator has been successfully installed.
+which shows that the 9.1.0 version of the operator has been successfully installed.
 
 ```bash
-oc describe csv ibm-mq.v2.4.0 -n openshift-operators
+oc describe csv ibm-appconnect.v9.1.0 -n openshift-operators
 ```
 
 The output provides an extensive amount of information not listed
@@ -736,10 +716,10 @@ here; feel free to examine it.
 ## Install Tekton pipelines
 
 Our final task is to install Tekton.  With it, we can create pipelines that
-populate the operational repository `mq01-ops` using the MQ configuration
-and development artifacts stored in `mq01-src`. Once populated by Tekton, ArgoCD
+populate the operational repository `ace01-ops` using the ACE configuration
+and development artifacts stored in `ace01-src`. Once populated by Tekton, ArgoCD
 will then synchronize these artifacts with the cluster to ensure the cluster is
-running the most up-to-date version of `mq01`.
+running the most up-to-date version of `ace01`.
 
 Issue the following command to create a subscription for Tekton:
 
@@ -772,7 +752,7 @@ metadata:
   namespace: openshift-operators
 spec:
   channel:  stable
-  installPlanApproval: Manual
+  installPlanApproval: Automatic
   name: openshift-pipelines-operator-rh
   source: redhat-operators
   sourceNamespace: openshift-marketplace
@@ -783,26 +763,6 @@ Manual Tekton install:
 kubectl apply -f https://storage.googleapis.com/tekton-releases/pipeline/previous/v0.16.3/release.yaml)
 ```
 ---
-
-## Approve and verify Tekton install plan
-
-Let's find our install plan and approve it.
-
-```bash
-oc get installplan -n openshift-operators | grep "openshift-pipelines-operator" | awk '{print $1}' | \
-xargs oc patch installplan \
- --namespace openshift-operators \
- --type merge \
- --patch '{"spec":{"approved":true}}'
-```
-
-which will approve the install plan
-
-```bash
-installplan.operators.coreos.com/install-xxxxx patched
-```
-
-where `install-xxxxx` is the name of the Tekton install plan.
 
 Again, feel free to verify the Tekton installation with the following commands:
 
@@ -820,35 +780,35 @@ oc describe csv openshift-pipelines-operator-rh.vx.y.z -n openshift-operators
 
 ## Create a secret to contain the PAT for use by Tekton.
 
-The PAT we created earlier is now stored as a secret in the `mq01-ci` namespace
-and used by the pipeline whenever it needs to access the `mq01-src` and
-`mq01-ops` repositories.
+The PAT we created earlier is now stored as a secret in the `ace01-ci` namespace
+and used by the pipeline whenever it needs to access the `ace01-src` and
+`ace01-ops` repositories.
 
 Issue the following command to create a secret containing the PAT:
 
 ```bash
 export GITCONFIG=$(printf "[credential \"https://github.com\"]\n  helper = store")
-oc create secret generic mq01-git-credentials -n mq01-ci \
+oc create secret generic ace01-git-credentials -n ace01-ci \
   --from-literal=.gitconfig="$GITCONFIG" \
   --from-literal=.git-credentials="https://$GITUSER:$GITTOKEN@github.com" \
   --type=Opaque \
-  --dry-run=client -o yaml > .ssh/mq01-git-credentials.yaml
+  --dry-run=client -o yaml > .ssh/ace01-git-credentials.yaml
 ```
 
 Issue the following command to create this secret in the cluster:
 
 ```bash
-oc apply -f .ssh/mq01-git-credentials.yaml
+oc apply -f .ssh/ace01-git-credentials.yaml
 ```
 
 Finally, add this secret to the `pipeline` service account to allow it to use
-`mq-1-ssh-credentials` secret to access GitHub.
+`ace-1-ssh-credentials` secret to access GitHub.
 
 ```bash
 oc patch serviceaccount pipeline \
-    --namespace mq01-ci \
+    --namespace ace01-ci \
     --type merge \
-    --patch '{"secrets":[{"name":"mq01-git-credentials"}]}'
+    --patch '{"secrets":[{"name":"ace01-git-credentials"}]}'
 ```
 
 ---
@@ -859,28 +819,28 @@ Allow Tekton to write to image registry
 
 
 ```bash
-oc policy add-role-to-user system:image-puller system:serviceaccount:mq01-dev:mq01-ibm-mq --namespace=mq01-ci
+oc policy add-role-to-user system:image-puller system:serviceaccount:ace01-dev:ace01-ibm-appconnect --namespace=ace01-ci
 ```
 
 ```bash
-// oc adm policy  add-cluster-role-to-user edit system:serviceaccount:mq01-ci:pipeline // not sure we need this?
+// oc adm policy  add-cluster-role-to-user edit system:serviceaccount:ace01-ci:pipeline // not sure we need this?
 ```
 
 ---
 
-## An ArgoCD application to manage `mq01`
+## An ArgoCD application to manage `ace01`
 
 Finally, we're going to create an ArgoCD application to manage the queue manager
-`mq01`. The YAMLs for `mq01` will be created by its Tekton pipeline in
-`mq01-ops`. Every time this repository is updated, our ArgoCD application will
-ensure that the latest version of `mq01` is deployed to the cluster.
+`ace01`. The YAMLs for `ace01` will be created by its Tekton pipeline in
+`ace01-ops`. Every time this repository is updated, our ArgoCD application will
+ensure that the latest version of `ace01` is deployed to the cluster.
 
 Let's have a quick look at our ArgoCD application.
 
 Issue the following command:
 
 ```bash
-cat environments/dev/argocd/mq01.yaml
+cat environments/dev/argocd/ace01.yaml
 ```
 
 which will show its YAML:
@@ -889,7 +849,7 @@ which will show its YAML:
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
-  name: mq01-argo
+  name: ace01-argo
   namespace: openshift-gitops
   annotations:
     argocd.argoproj.io/sync-wave: "100"
@@ -897,12 +857,12 @@ metadata:
     - resources-finalizer.argocd.argoproj.io
 spec:
   destination:
-    namespace: mq01-dev
+    namespace: ace01-dev
     server: https://kubernetes.default.svc
   project: default
   source:
-    path: environments/dev/mq01/
-    repoURL: https://github.com/$GITORG/mq01-ops.git
+    path: environments/dev/ace01/
+    repoURL: https://github.com/$GITORG/ace01-ops.git
     targetRevision: main
   syncPolicy:
     automated:
@@ -917,19 +877,19 @@ resources to deploy to the cluster:
 
 ```yaml
   source:
-    path: environments/dev/mq01/
-    repoURL: https://github.com/$GITORG/mq01-ops.git
+    path: environments/dev/ace01/
+    repoURL: https://github.com/$GITORG/ace01-ops.git
     targetRevision: main
 ```
 
 See how:
-  - `repoURL: https://github.com/$GITORG/mq01-ops.git` identifies the repository
+  - `repoURL: https://github.com/$GITORG/ace01-ops.git` identifies the repository
     where the YAMLs are located ($GITORG will be replaced with your GitHub
     organization)
   - `targetRevision: main` identifies the branch within the repository
-  - `path: environments/dev/mq01/` identifies the folder within the repository
+  - `path: environments/dev/ace01/` identifies the folder within the repository
 
-## Deploy `mq01-argo` to the cluster
+## Deploy `ac01-argo` to the cluster
 
 Let's deploy this ArgoCD application to the cluster. We use the `envsubst`
 command to replace $GITORG with your GitHub organization.
@@ -937,21 +897,21 @@ command to replace $GITORG with your GitHub organization.
 Issue the following command:
 
 ```bash
-envsubst < environments/dev/argocd/mq01.yaml >> environments/dev/argocd/mq01.yaml
-oc apply -f environments/dev/argocd/mq01.yaml
+envsubst < environments/dev/argocd/ace01.yaml >> environments/dev/argocd/ace01.yaml
+oc apply -f environments/dev/argocd/ace01.yaml
 ```
 
 which will complete with:
 
 ```bash
-application.argoproj.io/mq01-argo created
+application.argoproj.io/ace01-argo created
 ```
 
 We now have an ArgoCD application monitoring our repository.
 
-## View `mq01-argo` in ArgoCD UI
+## View `ace01-argo` in ArgoCD UI
 
-We can use the ArgoCD UI to look at the `mq01-argo` application and the
+We can use the ArgoCD UI to look at the `ace01-argo` application and the
 resources it is managing:
 
 Issue the following command to identify the URL for the ArgoCD login page:
@@ -989,22 +949,22 @@ Upon successful login, you will see the following screen:
 
 ![diagram4](./xdocs/images/diagram4.png)
 
-Notice how the ArgoCD application `mq01-argo` is monitoring the
-`https://github.com/mqorg-odowdaibm/mq01-ops` repository for YAMLs in the
-`environments/dev/mq01` folder.
+Notice how the ArgoCD application `ace01-argo` is monitoring the
+`https://github.com/aceorg-khongks/ace01-ops` repository for YAMLs in the
+`environments/dev/ace01` folder.
 
 In the next step we will run the Tekton pipeline that populates this repository
-folder with the YAMLs for the `mq01` queue manager.
+folder with the YAMLs for the `ace01` queue manager.
 
 ---
 
 ## Congratulations
 
-You've configured your cluster for MQ. Let's run a pipeline to populate
-the `mq01-ops` repository. This pipeline is held in the source repository
-`mq01-src`; it also holds the configuration for the `mq01` queue manager.
+You've configured your cluster for ACE. Let's run a pipeline to populate
+the `ace01-ops` repository. This pipeline is held in the source repository
+`ace01-src`; it also holds the configuration for the `ace01` queue manager.
 
-Continue [here](https://github.com/mq-modernization-demo/mq01-src#introduction) to fork
-your copy of the `mq01-src` repository.
+Continue [here](https://github.com/ace-modernization-demo/ace01-src#introduction) to fork
+your copy of the `ace01-src` repository.
 
 ---
