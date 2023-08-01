@@ -1,20 +1,20 @@
 apiVersion: cert-manager.io/v1
 kind: Certificate
 metadata:
-  name: mq01-secret1
-  namespace: mq01-dev
+  name: ace01-secret1
+  namespace: ace01-dev
 spec:
   dnsNames:
     - dummy.domain.com
   type: opaque
-  secretName: mq01-booking-service-secret1
+  secretName: ace01-booking-service-secret1
   issuerRef:
-    name: mq-selfsigned-issuer
+    name: ace-selfsigned-issuer
   duration: 2160h # 90d
   renewBefore: 360h # 15d
   subject:
     organizations:
-      - mq-org
+      - ace-org
   # The use of the common name field has been deprecated since 2000 and is
   # discouraged from being used.
   commonName: dummy.domain.com
