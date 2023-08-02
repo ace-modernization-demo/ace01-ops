@@ -541,12 +541,12 @@ Name:         ace-deployer
 Labels:       <none>
 Annotations:  <none>
 PolicyRule:
-  Resources                            Non-Resource URLs  Resource Names  Verbs
-  ---------                            -----------------  --------------  -----
-  secrets                              []                 []              [*]
-  services                             []                 []              [*]
-  MQservices.MQ.ibm.com                []                 []              [*]
-  ingresses.networking.k8s.io          []                 []              [*]
+  Resources                              Non-Resource URLs  Resource Names  Verbs
+  ---------                              -----------------  --------------  -----
+  secrets                                []                 []              [*]
+  services                               []                 []              [*]
+  configurations.appconnect.ibm.com      []                 []              [*]
+  integrationservers.appconnect.ibm.com  []                 []              [*]
 ```
 
 See how ArgoCD can now control `secrets`, `services`, `MQservices` and
@@ -725,7 +725,7 @@ metadata:
   name: openshift-pipelines-operator
   namespace: openshift-operators
 spec:
-  channel:  stable
+  channel:  latest
   installPlanApproval: Automatic
   name: openshift-pipelines-operator-rh
   source: redhat-operators
@@ -734,7 +734,7 @@ spec:
 
 Manual Tekton install:
 ```bash
-kubectl apply -f https://storage.googleapis.com/tekton-releases/pipeline/previous/v0.16.3/release.yaml)
+oc apply -f https://storage.googleapis.com/tekton-releases/pipeline/latest/release.yaml
 ```
 ---
 
@@ -871,7 +871,7 @@ command to replace $GITORG with your GitHub organization.
 Issue the following command:
 
 ```bash
-envsubst < environments/dev/argocd/ace01.yaml >> environments/dev/argocd/ace01.yaml
+envsubst < environments/dev/argocd/ace01.yaml.tmpl >> environments/dev/argocd/ace01.yaml
 oc apply -f environments/dev/argocd/ace01.yaml
 ```
 
@@ -897,7 +897,7 @@ oc get route openshift-gitops-server -n openshift-gitops -o jsonpath='{"https://
 which will return a URL similar to this:
 
 ```bash
-https://openshift-gitops-server-openshift-gitops.apps.sno-ajo-1.snoajo1.com
+https://openshift-gitops-server-openshift-gitops.apps.ocp-3100015379-l0ri.cloud.techzone.ibm.com/
 ```
 
 We will use this URL to log into the ArgoCD admin console to view our deployments.
