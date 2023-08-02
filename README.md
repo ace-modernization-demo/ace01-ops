@@ -85,7 +85,7 @@ oc login --token=sha256~noTAVal1dSHA --server=https://example.cloud.com:31428
 which should return a response like this:
 
 ```bash
-Logged into "https://example.cloud.com:31428" as "odowda@example.com" using the token provided.
+Logged into "https://example.cloud.com:31428" as "khongks@example.com" using the token provided.
 
 You have access to 67 projects, the list has been suppressed. You can list all projects with 'oc projects'
 
@@ -423,7 +423,7 @@ metadata:
   namespace: openshift-operators
 spec:
   channel: stable
-  installPlanApproval: Manual
+  installPlanApproval: Automatic
   name: openshift-gitops-operator
   source: redhat-operators
   sourceNamespace: openshift-marketplace
@@ -432,32 +432,6 @@ spec:
 See if you can understand each YAML node, referring to
 [subscriptions](https://olm.operatorframework.io/docs/concepts/crds/subscription/)
 if you need to learn more.
-
-## Approve ArgoCD install plan
-
-This subscription enables the cluster to keep up-to-date with new releases of
-ArgoCD. Each release has an [install
-plan](https://olm.operatorframework.io/docs/concepts/olm-architecture/) that is
-used to maintain it. Our install plan requires manual approval; we'll see why a
-little later.
-
-Let's find our install plan and approve it.
-
-Issue the following command:
-
-```bash
-oc get installplan -n openshift-operators | grep "openshift-gitops-operator" | awk '{print $1}' | \
-xargs oc patch installplan \
- --namespace openshift-operators \
- --type merge \
- --patch '{"spec":{"approved":true}}'
-```
-
-which will approve the install plan `install-xxxxx` for ArgoCD.
-
-```bash
-installplan.operators.coreos.com/install-xxxxx patched
-```
 
 ArgoCD will now install; this may take a few minutes.
 
