@@ -7,7 +7,7 @@ metadata:
   namespace: ace01-dev
 subjects:
 # You can specify more than one "subject"
-- kind: User
+- kind: ServiceAccount
   name: system:serviceaccount:openshift-gitops:openshift-gitops-argocd-application-controller # "name" is case sensitive
   apiGroup: rbac.authorization.k8s.io
 roleRef:

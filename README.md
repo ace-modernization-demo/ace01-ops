@@ -871,6 +871,11 @@ command to replace $GITORG with your GitHub organization.
 Issue the following command:
 
 ```bash
+envsubst < environments/ci/argocd/ci.yaml.tmpl >> environments/ci/argocd/ci.yaml
+oc apply -f environments/ci/argocd/ci.yaml
+```
+
+```bash
 envsubst < environments/dev/argocd/ace01.yaml.tmpl >> environments/dev/argocd/ace01.yaml
 oc apply -f environments/dev/argocd/ace01.yaml
 ```
