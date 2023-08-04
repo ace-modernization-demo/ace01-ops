@@ -880,6 +880,12 @@ envsubst < environments/dev/argocd/ace01.yaml.tmpl >> environments/dev/argocd/ac
 oc apply -f environments/dev/argocd/ace01.yaml
 ```
 
+```bash
+envsubst < environments/ci/pipelines/ace-dev-pipelinerun.yaml.tmpl >> environments/ci/pipelines/ace-dev-pipelinerun.yaml
+oc create -f environments/ci/pipelines/ace-dev-pipelinerun.yaml
+```
+
+
 which will complete with:
 
 ```bash
