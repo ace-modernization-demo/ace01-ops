@@ -5,6 +5,6 @@ metadata:
   name: pipeline-deployer
 rules:
 
-- apiGroups: ["tasks.tekton.dev"]
-  resources: ["pipelines", "pipelinerunes", "tasks"]
+- apiGroups: ["tekton.dev"]
+  resources: ["pipelines", "pipelineruns", "tasks"]
   verbs: ["*"]
