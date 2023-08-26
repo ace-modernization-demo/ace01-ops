@@ -17,6 +17,8 @@ metadata:
 spec:
   workspaces:
     - name: shared-workspace
+    - name: dockerconfig-workspace
+    - name: basic-auth-workspace
 
   params:
     # ########################################################
@@ -42,6 +44,11 @@ spec:
         URL for the git repository containing the App Connect project to
         deploy. If credentials are required, these should be available in
         a secret annotated with the git hostname.
+
+    - name: gitops-repository
+      type: string
+      description: |+
+        URL for the git repository containing the App Connect Ops project.
 
     - name: ace-project-name
       description: |+
@@ -193,11 +200,23 @@ spec:
     # ########################################################
 
     - name: app-connect-enterprise-version
-      default: "12.0.5.0-r4"
+      default: "12.0.9.0-r1"
     - name: app-connect-enterprise-license
-      default: "L-KSBM-CJ2KWU"
+      default: "L-LFMR-BTD75V"
     - name: app-connect-enterprise-base-image
-      default: "cp.icr.io/cp/appc/ace-server-prod@sha256:473bbea96e65025c11c91014ac8dd72641212bd2f5f35d661dca7b3242f4155c"
+      default: image-registry.openshift-image-registry.svc:5000/ace01-ci/ace-server-prod:latest-amd64
+      # default: "cp.icr.io/cp/appc/ace-server-prod@sha256:473bbea96e65025c11c91014ac8dd72641212bd2f5f35d661dca7b3242f4155c"
+    - name: integration-server-replicas
+      default: "1"
+    # - name: target-build-image
+    #   default: "quay.io/kskhong/ace01:1.0.0"
+
+    - name: git-user-name
+      type: string
+    - name: git-user-email
+      type: string
+    - name: git-script
+      type: string
 
     # ########################################################
 
@@ -207,7 +226,8 @@ spec:
 
     - name: clone-source
       taskRef:
-        name: git-clone-home
+        kind: Task
+        name: git-clone
       params:
         - name: url
           value: "$(params.git-repository)"
@@ -220,6 +240,7 @@ spec:
 
     - name: bar-file
       taskRef:
+        kind: Task
         name: ace-create-bar-file
       params:
         - name: ace-project-name
@@ -236,6 +257,7 @@ spec:
 
     - name: test
       taskRef:
+        kind: Task
         name: ace-run-tests
       params:
         - name: bar-file-location
@@ -255,11 +277,51 @@ spec:
         - name: output
           workspace: shared-workspace
 
+    # - name: build-and-push-image
+    #   taskRef:
+    #     kind: Task
+    #     name: docker-build
+    #   params:
+    #     - name: image
+    #       value: "$(params.target-build-image)"
+    #     - name: dockerfile
+    #       value: ./Dockerfile
+    #     - name: context
+    #       value: .
+    #     - name: insecure_registry
+    #       value: 'true'
+    #   runAfter:
+    #     - test
+    #   workspaces:
+    #     - name: output
+    #       workspace: shared-workspace
+
+    - name: build-and-push-image
+      taskRef:
+        kind: Task
+        name: buildah
+      params:
+        - name: BASE_IMAGE
+          value: "$(params.app-connect-enterprise-base-image)"
+        - name: IMAGE
+          value: image-registry.openshift-image-registry.svc:5000/$(params.ace-namespace)/$(params.integration-server-name):$(tasks.clone-source.results.commit)
+        - name: DOCKERFILE
+          value: ./Dockerfile
+        - name: TLSVERIFY
+          value: 'false'
+      runAfter:
+        - test
+      workspaces:
+        - name: output
+          workspace: shared-workspace
+        - name: dockerconfig
+          workspace: dockerconfig-workspace
 
     # --------------------------------------------------------
 
     - name: update-templates
       taskRef:
+        kind: Task
         name: ace-update-templates-from-secrets
       params:
         - name: credentials
@@ -275,6 +337,7 @@ spec:
 
     - name: p12
       taskRef:
+        kind: Task
         name: read-secret
       params:
         - name: name
@@ -304,6 +367,7 @@ spec:
 
     - name: p12-password
       taskRef:
+        kind: Task
         name: read-secret
       params:
         - name: name
@@ -333,6 +397,7 @@ spec:
 
     - name: jks
       taskRef:
+        kind: Task
         name: convert-p12-to-jks
       params:
         - name: p12-file
@@ -351,6 +416,7 @@ spec:
 
     - name: data-source
       taskRef:
+        kind: Task
         name: ace-create-datasource
       params:
         - name: ace-namespace
@@ -374,9 +440,9 @@ spec:
         - name: output
           workspace: shared-workspace
 
-
     - name: policies
       taskRef:
+        kind: Task
         name: ace-create-policy-project
       params:
         - name: ace-namespace
@@ -400,9 +466,9 @@ spec:
         - name: output
           workspace: shared-workspace
 
-
     - name: setdbparms
       taskRef:
+        kind: Task
         name: ace-create-configuration
       params:
         - name: ace-namespace
@@ -431,6 +497,7 @@ spec:
 
     - name: serverconf
       taskRef:
+        kind: Task
         name: ace-create-configuration
       params:
         - name: ace-namespace
@@ -456,9 +523,9 @@ spec:
         - name: output
           workspace: shared-workspace
 
-
     - name: truststore
       taskRef:
+        kind: Task
         name: ace-create-configuration
       params:
         - name: ace-namespace
@@ -475,12 +542,26 @@ spec:
         - name: output
           workspace: shared-workspace
 
-    # --------------------------------------------------------
+    - name: clone-ops
+      taskRef:
+        kind: Task
+        name: git-clone
+      params:
+        - name: url
+          value: "$(params.gitops-repository)"
+        - name: subdirectory
+          value: "gitops"
+      runAfter:
+        - build-and-push-image
+      workspaces:
+        - name: output
+          workspace: shared-workspace
 
-  finally:
+    # --------------------------------------------------------
 
     - name: integration-server
       taskRef:
+        kind: Task
         name: ace-create-integration-server
       params:
         # --------------------------------------------------------------
@@ -501,12 +582,16 @@ spec:
         # details of the Docker image that will be created to run the
         #  integration server
         # --------------------------------------------------------------
-        - name: ace-server-base-image
-          value: "$(params.app-connect-enterprise-base-image)"
-        - name: bar-file-location
-          value: "$(tasks.bar-file.results.folder)"
+        # - name: ace-server-base-image
+        #   value: "$(params.app-connect-enterprise-base-image)"
+        # - name: bar-file-location
+        #   value: "$(tasks.bar-file.results.folder)"
+        - name: replicas
+          value: "$(params.integration-server-replicas)"
         - name: integration-tag
           value: "$(tasks.clone-source.results.commit)"
+        # - name: target-build-image
+        #   value: "$(params.target-build-image)"
         # --------------------------------------------------------------
         #  configuration resources to add to the integration server
         # --------------------------------------------------------------
@@ -521,6 +606,22 @@ spec:
           value: "$(params.serverconf-name)"
         - name: truststore-configuration
           value: "$(params.truststore-name)"
+      runAfter:
+        - clone-ops
+        # - data-source
+        # - policies
+        # - setdbparms
+        # - serverconf
+        # - truststore
+      workspaces:
+        - name: output
+          workspace: shared-workspace
+
+  finally: 
+
+    - name: push-gitops
+      taskRef:
+        name: git-cli
       when:
         # --------------------------------------------------------------
         #  Don't run if the preceding tasks have failed
@@ -532,3 +633,12 @@ spec:
       workspaces:
         - name: output
           workspace: shared-workspace
+        - name: basic-auth
+          workspace: basic-auth-workspace
+      params:
+      - name: GIT_USER_NAME
+        value: $(params.git-user-name)
+      - name: GIT_USER_EMAIL
+        value: $(params.git-user-email)
+      - name: GIT_SCRIPT
+        value: $(params.git-script)
